@@ -8,8 +8,9 @@ const messages = mailgun({
 });
 
 const sendEmail = (verificationCode, email) => {
+  console.log(verificationCode, email);
   const data = {
-    from: "<arjumansreashtho@gmail.com>",
+    from: "<onlyjava45@gmail.com>",
     to: email,
     subject: "Verification Code",
     text: `Your verification code is ${verificationCode}`,

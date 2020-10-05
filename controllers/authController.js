@@ -1,7 +1,6 @@
 const fs = require("fs");
 const { promisify } = require("util");
 const unlinkAsync = promisify(fs.unlink);
-const passport = require("passport");
 
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -13,18 +12,18 @@ const keys = require("../config/keys");
 exports.register = async (req, res) => {
   try {
     const { name, username, email, password, role } = req.body;
-    const userImage = req.file.path;
+    const userImage = req.file ? req.file.path : undefined;
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
     let valid = await User.findOne({ username });
     if (valid) {
       await unlinkAsync(req.file.path);
       return res.status(400).json({ error: "Username already exits." });
     }
-    // valid = await User.findOne({ email });
-    // if (valid) {
-    //   await unlinkAsync(req.file.path);
-    //   return res.status(400).json({ error: "Email already exits." });
-    // }
+    valid = await User.findOne({ email });
+    if (valid) {
+      await unlinkAsync(req.file.path);
+      return res.status(400).json({ error: "Email already exits." });
+    }
     const salt = await bcrypt.genSalt(keys.SALT_ROUNDS);
     const hashPassword = await bcrypt.hash(password, salt);
     let user = new User({
@@ -40,10 +39,7 @@ exports.register = async (req, res) => {
       },
     });
     user = await user.save();
-    const token = await jwt.sign(
-      { _id: user._id, username: username },
-      keys.JWT_KEY
-    );
+    const token = await jwt.sign({ _id: user._id }, keys.JWT_KEY);
     const verification = sendEmail(verificationCode, email);
     if (verification && verification.error) {
       return res.json({ error: verification.error });
@@ -56,7 +52,7 @@ exports.register = async (req, res) => {
   }
 };
 
-exports.login = async (req, res) => {
+exports.login = async (req, res, next) => {
   try {
     const { username, password } = req.body;
     let validUser = await User.findOne({ username });
@@ -69,40 +65,44 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: "Invalid username or password" });
     }
 
-    const token = await jwt.sign(
-      { _id: validUser._id, username: username },
-      keys.JWT_KEY
-    );
+    const token = await jwt.sign({ _id: validUser._id }, keys.JWT_KEY);
     res.cookie("token", token, { expire: new Date() + 2592000 });
-    res.send(true);
+    next();
   } catch (error) {
     return res.json({ error: error.message });
   }
 };
 
 exports.userVerification = async (req, res) => {
-  // console.log(req.profile._id);
   const user = await User.findById(req.profile._id);
-  // console.log(req.params.verificationCode);
-  console.log(req.params.verificationCode, user.verify.code);
-  if (user.verify.code === Number(req.params.verificationCode)) {
+  if (user.verify.code === req.params.verificationCode) {
     user.verify.success = true;
     await user.save();
-    console.log("oauiefhioauhf", user.verify.success);
     res.redirect(`${keys.DOMAIN}:${keys.PORT}`);
   } else {
     return res.status(400).json({ error: "Incorrect verification code" });
   }
 };
 
-// exports.googleAuth = passport.authenticate("google", {
-//   scope: ["email", "profile"],
-// });
+exports.userUpdatePassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    let user = await User.findById(req.profile._id);
+    const salt = await bcrypt.genSalt(keys.SALT_ROUNDS);
+    const hashPassword = await bcrypt.hash(password, salt);
+    if (user.verify.code === "google") {
+      return res.json({ error: "Google user can not change password" });
+    }
+    user.hashPassword = hashPassword;
+    user = await user.save();
+    res.send("User password has been updated");
+  } catch (error) {
+    return res.json({ error: error.message });
+  }
+};
 
-// exports.googleAuthCallback = (req, res) => {
-//   passport.authenticate("google", { failureRedirect: "/login" }),
-//     function (req, res) {
-//       // Successful authentication, redirect home.
-//       res.redirect("/");
-//     };
-// };
+exports.googleAuth = async function (req, res) {
+  const token = await jwt.sign({ _id: req.user._id }, keys.JWT_KEY);
+  res.cookie("token", token, { expire: new Date() + 2592000 });
+  res.redirect("/");
+};

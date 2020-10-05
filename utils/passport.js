@@ -3,19 +3,7 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 
 const { User } = require("../models/userModel");
 const keys = require("../config/keys");
-
-passport.serializeUser((user, done) => {
-  done(null, user.id);
-});
-
-passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (error) {
-    done(error, null);
-  }
-});
+const { check } = require("express-validator");
 
 passport.use(
   new GoogleStrategy(
@@ -30,17 +18,37 @@ passport.use(
       const email = profile._json.email;
       const userImage = profile._json.picture;
       try {
+        let userChange = false;
         const user = await User.findOne({ email });
         if (user) {
-          cb(null, user);
+          if (name !== user.name) {
+            user.name = name;
+            userChange = true;
+          }
+          if (username !== user.username) {
+            user.username = username;
+            userChange = true;
+          }
+          if (userImage !== user.userImage) {
+            user.userImage = userImage;
+            userChange = true;
+          }
+          if (userChange) {
+            await user.save();
+          }
+          return cb(null, user);
         } else {
           const newUser = await new User({
             name,
             username,
             email,
             userImage,
+            verify: {
+              success: true,
+              code: "google",
+            },
           }).save();
-          cb(null, newUser);
+          return cb(null, newUser);
         }
       } catch (error) {
         return error;

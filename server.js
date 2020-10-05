@@ -1,6 +1,6 @@
 const express = require("express");
 const passport = require("passport");
-const cookieSession = require("cookie-session");
+const cookieParser = require("cookie-parser");
 
 const { auth } = require("./routes/authRoute");
 const { user } = require("./routes/userRoute");
@@ -24,15 +24,9 @@ db.once("open", function () {
 
 // Setup middleware
 app.use(express.json());
+app.use(cookieParser());
 app.use("/images", express.static("images"));
-app.use(
-  cookieSession({
-    maxAge: 30 * 24 * 60 * 60 * 1000,
-    keys: ["oa9i8syhcd0iawh"],
-  })
-);
 app.use(passport.initialize());
-app.use(passport.session());
 
 // Setup routers
 app.use("/api", auth);
