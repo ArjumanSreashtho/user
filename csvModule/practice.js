@@ -9,7 +9,16 @@ let csvData = [];
 let csvStream = fastcsv
   .parse()
   .on("data", function (data) {
-    csvData.push(data);
+    if (data.length !== 0) {
+      if (data.length > coloumNumber) {
+        throw new Error(`Found extra data in row no: ${rowCount}.`);
+      }
+      for (let i = 0; i < coloumNumber; i++) {
+        data[i] = data[i] ? data[i] : null;
+      }
+      rowCount++;
+      csvData.push(data);
+    }
   })
   .on("end", function () {
     // remove the first line: header
@@ -30,25 +39,11 @@ let csvStream = fastcsv
 
       try {
         csvData.forEach((row) => {
-          if (row.length !== 0) {
-            if (row.length > coloumNumber) {
-              throw new Error(
-                `Your data is inserted till row number: ${rowCount}. Found extra data in row no: ${rowCount}. Please Correct the data and remove all data before ${rowCount}`
-              );
+          client.query(query, row, (err, res) => {
+            if (err) {
+              console.log(err.stack);
             }
-
-            for (let i = 0; i < coloumNumber; i++) {
-              row[i] = row[i] ? row[i] : null;
-            }
-
-            //   row[1] = row[1] ? row[1] : null;
-            client.query(query, row, (err, res) => {
-              if (err) {
-                console.log(err.stack);
-              }
-            });
-            rowCount++;
-          }
+          });
         });
       } catch (error) {
         console.log(error);
