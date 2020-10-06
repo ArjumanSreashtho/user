@@ -7,6 +7,7 @@ const {
   userProfile,
   userDelete,
   userUpdate,
+  logout,
 } = require("../controllers/userController");
 const {
   requireLogin,
@@ -24,5 +25,6 @@ router.put(
   userImage,
   userUpdate
 );
+router.get("/users/logout", requireLogin, isAuthenticate, logout);
 
 exports.user = router;

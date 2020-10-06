@@ -1,6 +1,9 @@
 const express = require("express");
 const passport = require("passport");
 const cookieParser = require("cookie-parser");
+const mongoSanitizer = require("express-mongo-sanitize");
+const helmet = require("helmet");
+const xss = require("xss-clean");
 
 const { auth } = require("./routes/authRoute");
 const { user } = require("./routes/userRoute");
@@ -25,6 +28,9 @@ db.once("open", function () {
 // Setup middleware
 app.use(express.json());
 app.use(cookieParser());
+app.use(mongoSanitizer());
+app.use(helmet());
+app.use(xss());
 app.use("/images", express.static("images"));
 app.use(passport.initialize());
 

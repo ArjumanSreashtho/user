@@ -69,3 +69,7 @@ exports.userUpdate = async (req, res) => {
     res.json({ error: error.message });
   }
 };
+
+exports.logout = (req, res) => {
+  res.clearCookie("token");
+};
