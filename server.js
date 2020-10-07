@@ -4,6 +4,7 @@ const cookieParser = require("cookie-parser");
 const mongoSanitizer = require("express-mongo-sanitize");
 const helmet = require("helmet");
 const xss = require("xss-clean");
+const mongoose = require("mongoose");
 
 const { auth } = require("./routes/authRoute");
 const { user } = require("./routes/userRoute");
@@ -13,7 +14,7 @@ require("./utils/passport");
 const app = express();
 
 // DataBase Connection
-const mongoose = require("mongoose");
+
 mongoose.connect(keys.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,

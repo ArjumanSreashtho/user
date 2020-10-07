@@ -9,7 +9,7 @@ const { User } = require("../models/userModel");
 const { sendEmail } = require("../utils/mailgun");
 const keys = require("../config/keys");
 
-exports.register = async (req, res) => {
+exports.register = async (req, res, next) => {
   try {
     const { name, username, email, password, role } = req.body;
     const userImage = req.file ? req.file.path : undefined;
@@ -39,13 +39,11 @@ exports.register = async (req, res) => {
       },
     });
     user = await user.save();
-    const token = await jwt.sign({ _id: user._id }, keys.JWT_KEY);
     const verification = sendEmail(verificationCode, email);
     if (verification && verification.error) {
       return res.json({ error: verification.error });
     }
-    res.cookie("token", token, { expire: new Date() + 2592000 });
-    res.send(true);
+    sendTokenResponse(user, res, next);
   } catch (error) {
     await unlinkAsync(req.file.path);
     return res.json({ error: error.message });
@@ -64,13 +62,15 @@ exports.login = async (req, res, next) => {
     if (!checkPass) {
       return res.status(400).json({ error: "Invalid username or password" });
     }
-
-    const token = await jwt.sign({ _id: validUser._id }, keys.JWT_KEY);
-    res.cookie("token", token, { expire: new Date() + 2592000 });
-    next();
+    sendTokenResponse(validUser, res, next);
   } catch (error) {
     return res.json({ error: error.message });
   }
+};
+
+exports.logout = (req, res) => {
+  res.clearCookie("token");
+  res.redirect(`${keys.DOMAIN}:${keys.PORT}`);
 };
 
 exports.userVerification = async (req, res) => {
@@ -105,4 +105,13 @@ exports.googleAuth = async function (req, res) {
   const token = await jwt.sign({ _id: req.user._id }, keys.JWT_KEY);
   res.cookie("token", token, { expire: new Date() + 2592000 });
   res.redirect("/");
+};
+
+const sendTokenResponse = (user, res, next) => {
+  const token = user.generateToken();
+  res.cookie("token", token, {
+    expire: new Date() + 2592000,
+    httpOnly: true,
+  });
+  next();
 };

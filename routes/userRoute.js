@@ -25,6 +25,5 @@ router.put(
   userImage,
   userUpdate
 );
-router.get("/users/logout", requireLogin, isAuthenticate, logout);
 
 exports.user = router;

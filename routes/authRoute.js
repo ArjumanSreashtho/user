@@ -15,10 +15,13 @@ const {
   googleAuth,
   userVerification,
   userUpdatePassword,
+  logout,
 } = require("../controllers/authController");
 
-router.post("/register", userImage, register);
+router.get("/check", requireLogin, isAuthenticate);
+router.post("/register", userImage, register, redirectHome);
 router.post("/login", login, requireLogin, isAuthenticate, redirectHome);
+router.get("/users/logout", requireLogin, isAuthenticate, logout);
 router.get("/verification/:verificationCode", requireLogin, userVerification);
 router.post(
   "/password/update",
