@@ -6,7 +6,7 @@ const fastcsv = require("fast-csv");
 
 const { CustomError } = require("./CustomError");
 
-const csvReadandSave = (req, res) => {
+exports.csvReadandSave = (req, res) => {
   if (!req.file) {
     return res.json(400).send(false);
   }
@@ -73,4 +73,10 @@ const csvReadandSave = (req, res) => {
   stream.pipe(csvStream);
 };
 
-exports.csvReadandSave = csvReadandSave;
+exports.downloadDemoCsv = (req, res) => {
+  res.download(__dirname + "/downloads/demoCsvFile.csv", function (error) {
+    if (error) {
+      res.status(400).json("Server problem. File not found");
+    }
+  });
+};
